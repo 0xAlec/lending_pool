@@ -82,7 +82,7 @@ module lending_pool::pool_tests {
   }
 
   #[test]
-  fun test_borrow(){
+  fun test_withdraw(){
     let owner = @0x1;
     let borrower = @0x2;
     let scenario = &mut test_scenario::begin(&owner);
@@ -135,9 +135,9 @@ module lending_pool::pool_tests {
       let treasury_cap = test_scenario::borrow_mut(&mut treasury_wrapper);
       let coins = test_scenario::take_owned<Coin<POOLCOIN>>(scenario);
       let sui_coins = test_scenario::take_owned<Coin<SUI>>(scenario);
-      // Borrow 6 tokens
+      // Withdraw 6 tokens
       let ctx = test_scenario::ctx(scenario);
-      pool::borrow(pool, coins, sui_coins, 6, treasury_cap, ctx);
+      pool::withdraw(pool, coins, sui_coins, 6, treasury_cap, ctx);
       // Return ownership
       test_scenario::return_shared(scenario, pool_wrapper);
       test_scenario::return_shared(scenario, treasury_wrapper);
@@ -162,7 +162,7 @@ module lending_pool::pool_tests {
 
   #[test]
   #[expected_failure]
-  fun test_exceed_borrow(){
+  fun test_exceed_withdraw(){
     let owner = @0x1;
     let borrower = @0x2;
     let scenario = &mut test_scenario::begin(&owner);
@@ -174,7 +174,7 @@ module lending_pool::pool_tests {
       pool::init_for_testing(ctx);
     };
 
-    // Cannot borrow more than collateral
+    // Cannot withdraw more than collateral
     test_scenario::next_tx(scenario, &borrower);
     {
       // Take ownership
@@ -184,9 +184,9 @@ module lending_pool::pool_tests {
       let treasury_cap = test_scenario::borrow_mut(&mut treasury_wrapper);
       let coins = test_scenario::take_owned<Coin<POOLCOIN>>(scenario);
       let sui_coins = test_scenario::take_owned<Coin<SUI>>(scenario);
-      // Borrow 1 tokens
+      // Withdraw 1 token
       let ctx = test_scenario::ctx(scenario);
-      pool::borrow(pool, coins, sui_coins, 1, treasury_cap, ctx);
+      pool::withdraw(pool, coins, sui_coins, 1, treasury_cap, ctx);
       // Return ownership
       test_scenario::return_shared(scenario, pool_wrapper);
       test_scenario::return_shared(scenario, treasury_wrapper);

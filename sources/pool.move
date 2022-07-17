@@ -30,21 +30,21 @@ module lending_pool::pool {
     coin::mint_and_transfer<POOLCOIN>(treasury_cap, amount, tx_context::sender(ctx), ctx);
   }
 
-  // Borrow funds
-  public fun borrow(pool: &mut LendingPool, collateral: Coin<POOLCOIN>, balance: Coin<SUI>, amount: u64, treasury_cap: &mut TreasuryCap<POOLCOIN>, ctx: &mut TxContext) {
+  // Withdraw funds
+  public fun withdraw(pool: &mut LendingPool, collateral: Coin<POOLCOIN>, balance: Coin<SUI>, amount: u64, treasury_cap: &mut TreasuryCap<POOLCOIN>, ctx: &mut TxContext) {
     assert!(amount > 0, 0);
-    // Reduce borrower's POOLCOIN balance
+    // Reduce user's POOLCOIN balance
     let collateral_balance = coin::balance_mut(&mut collateral);
-    let borrow_amount = coin::take(collateral_balance, amount, ctx);
+    let withdrawal_amount = coin::take(collateral_balance, amount, ctx);
     // Burn POOLCOINs
-    coin::burn(treasury_cap, borrow_amount);
+    coin::burn(treasury_cap, withdrawal_amount);
     coin::keep(collateral, ctx);
     // Reduce pool's SUI balance
     let pool_bal = coin::balance_mut(&mut pool.balance);
-    // Send borrowed coins to user
-    let borrowed_coins = coin::take(pool_bal, amount, ctx);
+    // Send withdrawn coins to user
+    let withdrawal = coin::take(pool_bal, amount, ctx);
     let user_balance = coin::balance_mut(&mut balance);
-    coin::put(user_balance, borrowed_coins);
+    coin::put(user_balance, withdrawal);
     coin::keep(balance, ctx);
   }
 
