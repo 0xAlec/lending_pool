@@ -18,16 +18,6 @@ module lending_pool::pool {
     coin::value(&pool.balance)
   }
 
-  struct UserRecord has key {
-    id: VersionedID,
-    // user
-    owner: address,
-    // deposits
-    deposits: u128,
-    // borrowed
-    borrows: u128,
-  }
-
   struct POOLCOIN has drop {}
 
   // Deposit funds into the pool
