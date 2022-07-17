@@ -19,7 +19,7 @@ module lending_pool::pool {
   struct POOLCOIN has drop {}
 
   // Deposit funds into the pool
-  public fun deposit(pool: &mut LendingPool, depositor: Coin<SUI>, amount: u64, treasury_cap: &mut TreasuryCap<POOLCOIN>, ctx: &mut TxContext) {
+  public entry fun deposit(pool: &mut LendingPool, depositor: Coin<SUI>, amount: u64, treasury_cap: &mut TreasuryCap<POOLCOIN>, ctx: &mut TxContext) {
     // Deduct deposit amount from user balance
     let user_balance = coin::balance_mut(&mut depositor);
     let deposit = coin::take(user_balance, amount, ctx);
@@ -31,7 +31,7 @@ module lending_pool::pool {
   }
 
   // Withdraw funds
-  public fun withdraw(pool: &mut LendingPool, collateral: Coin<POOLCOIN>, balance: Coin<SUI>, amount: u64, treasury_cap: &mut TreasuryCap<POOLCOIN>, ctx: &mut TxContext) {
+  public entry fun withdraw(pool: &mut LendingPool, collateral: Coin<POOLCOIN>, balance: Coin<SUI>, amount: u64, treasury_cap: &mut TreasuryCap<POOLCOIN>, ctx: &mut TxContext) {
     assert!(amount > 0, 0);
     // Reduce user's POOLCOIN balance
     let collateral_balance = coin::balance_mut(&mut collateral);
