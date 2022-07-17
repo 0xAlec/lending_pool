@@ -7,13 +7,11 @@ module lending_pool::pool {
 
   struct LendingPool has key {
     id: VersionedID,
-    // owner
     owner: address,
-    // balance
     balance: Coin<SUI>,
   }
 
-  // See balance of pool
+  // Check balance of pool
   public fun pool_balance(pool: &LendingPool): u64 {
     coin::value(&pool.balance)
   }
@@ -28,21 +26,22 @@ module lending_pool::pool {
     coin::keep(depositor, ctx);
     // Increase pool balance
     coin::join(&mut pool.balance, deposit);
-    // Give the depositor pool tokens in return
+    // Send pool tokens representing collateral to depositor
     coin::mint_and_transfer<POOLCOIN>(treasury_cap, amount, tx_context::sender(ctx), ctx);
   }
 
   // Borrow funds
   public fun borrow(pool: &mut LendingPool, collateral: Coin<POOLCOIN>, balance: Coin<SUI>, amount: u64, treasury_cap: &mut TreasuryCap<POOLCOIN>, ctx: &mut TxContext) {
-    // Remove collateral
+    assert!(amount > 0, 0);
+    // Reduce borrower's POOLCOIN balance
     let collateral_balance = coin::balance_mut(&mut collateral);
     let borrow_amount = coin::take(collateral_balance, amount, ctx);
     // Burn POOLCOINs
     coin::burn(treasury_cap, borrow_amount);
     coin::keep(collateral, ctx);
-    // Reduce pool balance
+    // Reduce pool's SUI balance
     let pool_bal = coin::balance_mut(&mut pool.balance);
-    // Send coins to user
+    // Send borrowed coins to user
     let borrowed_coins = coin::take(pool_bal, amount, ctx);
     let user_balance = coin::balance_mut(&mut balance);
     coin::put(user_balance, borrowed_coins);
