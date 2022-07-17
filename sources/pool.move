@@ -39,8 +39,7 @@ module lending_pool::pool {
     // Increase pool balance
     coin::join(&mut pool.balance, deposit);
     // Give the depositor pool tokens in return
-    let owed_coins = coin::mint<POOLCOIN>(treasury_cap, amount, ctx);
-    coin::transfer(owed_coins, tx_context::sender(ctx));
+    coin::mint_and_transfer<POOLCOIN>(treasury_cap, amount, tx_context::sender(ctx), ctx);
   }
 
   // Create a pool
