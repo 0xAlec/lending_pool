@@ -1,0 +1,9 @@
+[package]
+name = "LendingPool"
+version = "0.0.1"
+
+[dependencies]
+Sui = { local = "../sui/crates/sui-framework" }
+
+[addresses]
+lending_pool = "0x0"
