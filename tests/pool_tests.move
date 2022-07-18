@@ -125,7 +125,7 @@ module lending_pool::pool_tests {
       test_scenario::return_shared(scenario, treasury_wrapper);
     };
 
-    // Borrow funds
+    // Withdraw funds
     test_scenario::next_tx(scenario, &borrower);
     {
       // Take ownership
@@ -191,5 +191,72 @@ module lending_pool::pool_tests {
       test_scenario::return_shared(scenario, pool_wrapper);
       test_scenario::return_shared(scenario, treasury_wrapper);
     }
+  }
+
+  #[test]
+  fun test_borrow(){
+    let owner = @0x1;
+    let borrower = @0x2;
+    let scenario = &mut test_scenario::begin(&owner);
+    // Initialize the lending pool
+    test_scenario::next_tx(scenario, &owner);
+    {
+      let ctx = test_scenario::ctx(scenario);
+      pool::init_for_testing(ctx);
+    };
+    // Give borrower some collateral
+    test_scenario::next_tx(scenario, &borrower);
+    {
+      let ctx = test_scenario::ctx(scenario);
+      let sui_coins = coin::mint_for_testing<SUI>(10, ctx);
+      coin::keep(sui_coins, ctx);
+    };
+    // Deposit collateral
+    test_scenario::next_tx(scenario, &borrower);
+    {
+      // Take ownership
+      let pool_wrapper = test_scenario::take_shared<LendingPool>(scenario);
+      let pool = test_scenario::borrow_mut(&mut pool_wrapper);
+      let treasury_wrapper = test_scenario::take_shared<TreasuryCap<POOLCOIN>>(scenario);
+      let treasury_cap = test_scenario::borrow_mut(&mut treasury_wrapper);
+      let coins = test_scenario::take_owned<Coin<SUI>>(scenario);
+      // Deposit 10 tokens
+      let ctx = test_scenario::ctx(scenario);
+      pool::deposit(pool, coins, 10, treasury_cap, ctx);
+      // Return ownership
+      test_scenario::return_shared(scenario, pool_wrapper);
+      test_scenario::return_shared(scenario, treasury_wrapper);
+    };
+    // Borrow
+    test_scenario::next_tx(scenario, &borrower);
+    {
+      // Take ownership
+      let pool_wrapper = test_scenario::take_shared<LendingPool>(scenario);
+      let pool = test_scenario::borrow_mut(&mut pool_wrapper);
+      let treasury_wrapper = test_scenario::take_shared<TreasuryCap<POOLCOIN>>(scenario);
+      let treasury_cap = test_scenario::borrow_mut(&mut treasury_wrapper);
+      let coins = test_scenario::take_owned<Coin<POOLCOIN>>(scenario);
+      let sui_coins = test_scenario::take_owned<Coin<SUI>>(scenario);
+      // Borrow 2 tokens
+      let ctx = test_scenario::ctx(scenario);
+      pool::borrow(pool, coins, sui_coins, 2, treasury_cap, ctx);
+      // Return ownership
+      test_scenario::return_shared(scenario, pool_wrapper);
+      test_scenario::return_shared(scenario, treasury_wrapper);
+    };
+    // Test user's SUI balance is 2 after deposit
+    test_scenario::next_tx(scenario, &borrower);
+    {
+      let user_funds = test_scenario::take_owned<Coin<SUI>>(scenario);
+      assert!(coin::value(&user_funds)==2,0);
+      test_scenario::return_owned(scenario, user_funds);
+    };
+    // Test user's POOLCOIN balance is 6 after borrow
+    test_scenario::next_tx(scenario, &borrower);
+    {
+      let user_funds = test_scenario::take_owned<Coin<POOLCOIN>>(scenario);
+      assert!(coin::value(&user_funds)==6,0);
+      test_scenario::return_owned(scenario, user_funds);
+    };
   }
 }
