@@ -1,7 +1,7 @@
 #[test_only]
 
 module lending_pool::pool_tests {
-  use lending_pool::pool::{Self, LendingPool, POOLCOIN};
+  use lending_pool::pool::{Self, LendingPool, POOLCOIN, DEBTCOIN};
   use sui::test_scenario;
   use sui::balance::{Self};
   use sui::coin::{Self, Coin, TreasuryCap};
@@ -235,14 +235,17 @@ module lending_pool::pool_tests {
       let pool = test_scenario::borrow_mut(&mut pool_wrapper);
       let treasury_wrapper = test_scenario::take_shared<TreasuryCap<POOLCOIN>>(scenario);
       let treasury_cap = test_scenario::borrow_mut(&mut treasury_wrapper);
+      let debt_treasury_wrapper = test_scenario::take_shared<TreasuryCap<DEBTCOIN>>(scenario);
+      let debt_treasury_cap = test_scenario::borrow_mut(&mut debt_treasury_wrapper);
       let coins = test_scenario::take_owned<Coin<POOLCOIN>>(scenario);
       let sui_coins = test_scenario::take_owned<Coin<SUI>>(scenario);
       // Borrow 2 tokens
       let ctx = test_scenario::ctx(scenario);
-      pool::borrow(pool, coins, sui_coins, 2, treasury_cap, ctx);
+      pool::borrow(pool, coins, sui_coins, 2, treasury_cap, debt_treasury_cap, ctx);
       // Return ownership
       test_scenario::return_shared(scenario, pool_wrapper);
       test_scenario::return_shared(scenario, treasury_wrapper);
+      test_scenario::return_shared(scenario, debt_treasury_wrapper);
     };
     // Test user's SUI balance is 2 after deposit
     test_scenario::next_tx(scenario, &borrower);
@@ -256,6 +259,13 @@ module lending_pool::pool_tests {
     {
       let user_funds = test_scenario::take_owned<Coin<POOLCOIN>>(scenario);
       assert!(coin::value(&user_funds)==6,0);
+      test_scenario::return_owned(scenario, user_funds);
+    };
+    // Test user's DEBTCOIN balance is 2 after deposit
+    test_scenario::next_tx(scenario, &borrower);
+    {
+      let user_funds = test_scenario::take_owned<Coin<DEBTCOIN>>(scenario);
+      assert!(coin::value(&user_funds)==2,0);
       test_scenario::return_owned(scenario, user_funds);
     };
   }

@@ -17,6 +17,8 @@ module lending_pool::pool {
   }
 
   struct POOLCOIN has drop {}
+  struct DEBTCOIN has drop {}
+
 
   // Deposit funds into the pool
   public entry fun deposit(pool: &mut LendingPool, depositor: Coin<SUI>, amount: u64, treasury_cap: &mut TreasuryCap<POOLCOIN>, ctx: &mut TxContext) {
@@ -49,13 +51,13 @@ module lending_pool::pool {
   }
 
   // Borrow coins
-  public entry fun borrow(pool: &mut LendingPool, collateral: Coin<POOLCOIN>, balance: Coin<SUI>, amount: u64, treasury_cap: &mut TreasuryCap<POOLCOIN>, ctx: &mut TxContext){
+  public entry fun borrow(pool: &mut LendingPool, collateral: Coin<POOLCOIN>, balance: Coin<SUI>, amount: u64, pool_treasury: &mut TreasuryCap<POOLCOIN>, debt_treasury: &mut TreasuryCap<DEBTCOIN>, ctx: &mut TxContext){
     assert!(amount >0, 0);
     // LTV 2:1
-    let collateral_balance = coin::balance_mut(&mut collateral);
-    let borrow_amount = coin::take(collateral_balance, 2*amount, ctx);
+    let borrow_balance = coin::balance_mut(&mut collateral);
+    let borrow_amount = coin::take(borrow_balance, 2*amount, ctx);
     // Burn POOLCOINs
-    coin::burn(treasury_cap, borrow_amount);
+    coin::burn(pool_treasury, borrow_amount);
     coin::keep(collateral, ctx);
     // Reduce pool's SUI balance
     let pool_bal = coin::balance_mut(&mut pool.balance);
@@ -64,6 +66,8 @@ module lending_pool::pool {
     let user_balance = coin::balance_mut(&mut balance);
     coin::put(user_balance, withdrawal);
     coin::keep(balance, ctx);
+    // Mint debt tokens
+    coin::mint_and_transfer<DEBTCOIN>(debt_treasury, amount, tx_context::sender(ctx), ctx);
   }
 
   // Create a pool
@@ -74,7 +78,9 @@ module lending_pool::pool {
       balance: coin::zero<SUI>(ctx)
     });
     let treasury_cap = coin::create_currency<POOLCOIN>(POOLCOIN{}, ctx);
+    let debt_treasury = coin::create_currency<DEBTCOIN>(DEBTCOIN{}, ctx);
     transfer::share_object(treasury_cap);
+    transfer::share_object(debt_treasury);
   }
 
   #[test_only]
