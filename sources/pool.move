@@ -1,3 +1,7 @@
+// An AAVE-like lending pool implementation,
+// mint POOLCOINs representing collateral (currently taking deposits in SUI)
+// borrow SUI by burning POOLCOINs and minting DEBTCOINs
+
 module lending_pool::pool {
   use sui::id::VersionedID;
   use sui::transfer;
@@ -17,15 +21,12 @@ module lending_pool::pool {
   }
 
   fun init(ctx: &mut TxContext) {
+    let id = tx_context::new_id(ctx);
+    let owner = tx_context::sender(ctx);
+    let balance = coin::zero<SUI>(ctx);
     let lp_cap = coin::create_currency<POOLCOIN>(POOLCOIN{}, ctx);
     let debt_cap = coin::create_currency<DEBTCOIN>(DEBTCOIN{}, ctx);
-    transfer::share_object(LendingPool {
-      id: tx_context::new_id(ctx),
-      owner: tx_context::sender(ctx),
-      balance: coin::zero<SUI>(ctx),
-      lp_cap,
-      debt_cap,
-    });
+    transfer::share_object(LendingPool{ id, owner, balance, lp_cap, debt_cap });
   }
 
   /// === Writes ===
@@ -63,7 +64,7 @@ module lending_pool::pool {
   // Borrow coins
   public entry fun borrow(pool: &mut LendingPool, collateral: Coin<POOLCOIN>, balance: Coin<SUI>, amount: u64, ctx: &mut TxContext){
     assert!(amount >0, 0);
-    // LTV 50%
+    // Ex: LTV 50%
     let borrow_balance = coin::balance_mut(&mut collateral);
     let borrow_coins = coin::take(borrow_balance, 2*amount, ctx);
     // Burn POOLCOINs
@@ -80,6 +81,7 @@ module lending_pool::pool {
     coin::mint_and_transfer<DEBTCOIN>(&mut pool.debt_cap, amount, tx_context::sender(ctx), ctx);
   }
 
+  // Repay borrowed funds 
   public entry fun repay(pool: &mut LendingPool, coin: Coin<SUI>, debt_coin: Coin<DEBTCOIN>, amount: u64, ctx: &mut TxContext){
     // Burn debt tokens equal to repayment
     // TODO: add interest
@@ -90,7 +92,7 @@ module lending_pool::pool {
     let coin_balance = coin::balance_mut(&mut coin);
     let coins_to_repay = coin::take(coin_balance, amount, ctx);
     coin::join(&mut pool.balance, coins_to_repay);
-    // Return collateral - 50% LTV
+    // Return collateral - ex: 50% LTV
     coin::mint_and_transfer<POOLCOIN>(&mut pool.lp_cap, 2*amount, tx_context::sender(ctx), ctx);
     // Return ownership
     coin::keep(coin, ctx);
